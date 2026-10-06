@@ -1,0 +1,181 @@
+{
+    "SystemSettings":{
+
+        "SerialPort": "COM5",
+        "Resolution": {
+            "Width": 800,
+            "Height": 480
+        },
+        "Baudrate": 115200,
+        "location": "Espoo"
+    },
+
+    "Entities": [
+        {
+            "id": "vertical_line",
+            "type": "line",
+            "thickness": 2,
+            "x1": 400,
+            "y1": 480,
+            "x2": 400,
+            "y2": 0
+        },
+        {
+            "id": "horizontal_line",
+            "type": "line",
+            "thickness": 2,
+            "x1": 0,
+            "y1": 240,
+            "x2": 800,
+            "y2": 240
+        },
+        {
+            "id": "label.indoor_conditions",
+            "type": "label",
+            "text": "Indoor Conditions",
+            "font": "header",
+            "x": 200,
+            "y": 10
+        },
+        {
+            "id": "label.outdoor_conditions",
+            "type": "label",
+            "text": "Outdoor Conditions",
+            "font": "header",
+            "x": 600,
+            "y": 10
+        },
+        
+        {
+            "id": "calendar_main",
+            "type": "calendar",
+            "x": 400,
+            "y": 240,
+            "width": 400,
+            "height": 240
+        },
+
+        {
+            "id": "sensor.bme688_temp",
+            "type": "text",
+            "unit": "°C",
+            "font": "value",
+            "x": 180,
+            "y": 70,
+            "limits":{"LL": 19, "HH": 25 }
+        },
+        {
+            "id": "sensor.bme688_rh",
+            "type": "text",
+            "unit": "RH%",
+            "font": "value",
+            "x": 380,
+            "y": 70,
+            "limits":{"LL": 0, "HH": 80 }
+        },
+        {
+            "id": "sensor.bme688_co2",
+            "type": "text",
+            "unit": "eCO2\nppm",
+            "font": "value",
+            "x": 180,
+            "y": 140,
+            "limits":{"LL": 0, "HH": 1200 }
+        },
+        {
+            "id": "sensor.bme688_pressure",
+            "type": "text",
+            "unit": "hPa",
+            "font": "value",
+            "x": 380,  
+            "y": 140,
+            "limits":{"LL": 100, "HH": 110 }
+        },
+        {
+            "id": "sensor.bme688_voc",
+            "type": "text",
+            "unit": "VOC\nppb",
+            "font": "value",
+            "x": 180,
+            "y": 210,
+            "limits":{"LL": 0, "HH": 500 }
+        },
+        {
+            "id": "sensor.bme688_aq",
+            "type": "text",
+            "unit": "AQ%",
+            "font": "value",
+            "x": 380,
+            "y": 210,
+            "limits":{"LL": 0, "HH": 100 }
+        },
+
+        {
+            "id": "FMI.outdoor_temperature",
+            "type": "text",
+            "unit": "°C",
+            "font": "value",
+            "x": 580,
+            "y": 70,
+            "limits":{"LL": -50, "HH": 50 }
+        },
+        {
+            "id": "FMI.outdoor_humidity",
+            "type": "text",
+            "unit": "RH%",
+            "font": "value",
+            "x": 770,
+            "y": 70,
+            "limits":{"LL": 0,"HH": 100 }
+        },
+        {
+            "id": "FMI.wind_speed",
+            "type": "text",
+            "unit": "m/s",
+            "font": "value",
+            "x": 580,
+            "y": 140,
+            "limits":{"LL": 0, "HH": 50 }
+        },
+        {
+            "id": "FMI.rain_amount",
+            "type": "text",
+            "unit": "mm",
+            "font": "value",
+            "x": 580,
+            "y": 210
+        },
+
+        {
+            "id": "image.weather_icon",
+            "type": "image",
+            "file": "weather_icon.png",
+            "x": 795,
+            "y": 235,
+            "height": 130,
+            "width": 130
+        },
+        {
+            "id": "image.precip_icon",
+            "type": "image",
+            "file": "precip_icon.png",
+            "x": 640,
+            "y": 230,
+            "height": 40,
+            "width": 40
+        },
+        {
+            "id": "image.wind_dir",
+            "type": "image",
+            "file": "weather_icons/wind_arrow.png",
+            "x": 640,
+            "y": 160,
+            "width": 40,
+            "height": 40
+        }
+
+
+    ]
+    
+
+}
