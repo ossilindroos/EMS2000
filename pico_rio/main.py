@@ -47,12 +47,12 @@ class DashboardNode:
         try:
             if self.sensor.get_sensor_data():
                 payload = {
-                    "temperature": round(self.sensor.data.temperature, 2),
-                    "humidity": round(self.sensor.data.humidity, 2),
-                    "pressure": round(self.sensor.data.pressure, 2)
+                    "sensor.bme688_temp": round(self.sensor.data.temperature, 1),
+                    "sensor.bme688_rh": round(self.sensor.data.humidity, 1),
+                    "sensor.bme688_pressure": round(self.sensor.data.pressure, 0)
                 }
                 if self.sensor.data.heat_stable:
-                    payload["gas_resistance"] = round(self.sensor.data.gas_resistance, 2)
+                    payload["sensor.bme688_gas_resistance"] = round(self.sensor.data.gas_resistance, 2)
                 
                 # Using our new link module!
                 self.link.send_message(payload)
