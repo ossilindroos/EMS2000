@@ -33,9 +33,9 @@ class IAQCalculator:
         voc = (100.0 - aq_percent) * 50.0
         
         return {
-            "temperature": round(temp, 1),
-            "humidity": round(hum, 1),
-            "aq": round(aq_percent, 1),
-            "eco2": round(eco2, 0),
-            "voc": int(voc)
+            "sensor.bme688_temp": round(temp, 1),
+            "sensor.bme688_rh": round(hum, 1),
+            "sensor.bme688_aq": round(aq_percent, 1),
+            "sensor.bme688_co2": int(eco2),
+            "sensor.bme688_voc": int(voc)
         }

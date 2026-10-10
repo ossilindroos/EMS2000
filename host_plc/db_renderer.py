@@ -269,7 +269,22 @@ class DashboardRenderer:
                     )
                 except KeyError as e:
                     logger.error(f"Missing dimensions for calendar entity {entity.get('id', 'UNKNOWN')}: {e}")
-
+                    
+            elif e_type == "graph":
+                # Get injected image object from entity, which should be pre-rendered by GraphMaker
+                graph_img = entity.get("image_obj")
+                
+                if graph_img:
+                    # Paste the graph image at the specified coordinates
+                    img.paste(graph_img, (entity["x"], entity["y"]))
+                else:
+                    logger.warning(f"Graph entity '{entity.get('id', 'UNKNOWN')}' is missing 'image_obj'.")
+                    # If no image_obj is provided, draw a placeholder rectangle
+                    x, y = entity["x"], entity["y"]
+                    w, h = entity.get("width", 100), entity.get("height", 100)
+                    draw.rectangle([x, y, x + w, y + h], outline=base_color, width=1)
+                    draw.line([x, y, x + w, y + h], fill=base_color, width=1)
+            
         return img
                 
     

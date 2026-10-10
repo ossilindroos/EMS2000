@@ -52,18 +52,17 @@ class FMIClient:
                 
             # 4. Translate the parsed data into our internal format. We also ensure that if a parameter is missing, we default to 0.0.
             self.fmi_data = {
-                "temperature": parsed_data.get("t2m", 0.0),
-                "humidity": parsed_data.get("rh", 0.0),
-                "wind_speed": parsed_data.get("ws_10min", 0.0),
-                "wind_dir": parsed_data.get("wd_10min", 0.0),
-                "rain_amount": parsed_data.get("r_1h", 0.0),
-                "weather_code": int(parsed_data.get("wawa", 0))
+                "FMI.temp": parsed_data.get("t2m", 0.0),
+                "FMI.rh": parsed_data.get("rh", 0.0),
+                "FMI.wind_speed": parsed_data.get("ws_10min", 0.0),
+                "FMI.wind_dir": parsed_data.get("wd_10min", 0.0),
+                "FMI.rain_amount": parsed_data.get("r_1h", 0.0),
+                "FMI.weather_code": int(parsed_data.get("wawa", 0))
             }
             
         except Exception as e:
-            print(f"Virhe FMI-datan haussa: {e}")
-            # Tähän voisi lisätä logiikan, joka palauttaa aiemman välimuistin (cached_data) 
-            # jos netti pätkii, mutta mennään nyt tällä.
+            print(f"Error fetching FMI data: {e}")
+            
 
     def _calculate_precipitation(self, temp, raw_mm, wawa_code):
         # Returns precipitation value, unit, and icon path based on temperature and weather code.
@@ -90,23 +89,21 @@ class FMIClient:
 
 
     def get_dashboard_payload(self):
-        temp = self.fmi_data.get("temperature", 0.0)
-        raw_rain = self.fmi_data.get("rain_amount", 0.0)
-        wawa_code = self.fmi_data.get("weather_code", 0)
+        temp = self.fmi_data.get("FMI.temp", 0.0)
+        raw_rain = self.fmi_data.get("FMI.rain_amount", 0.0)
+        wawa_code = self.fmi_data.get("FMI.weather_code", 0)
 
         # Run the precipitation calculation and icon mapping based on the current temperature and weather code.
         precip_val, precip_unit, precip_icon = self._calculate_precipitation(temp, raw_rain, wawa_code)
         main_icon_path = self._map_weather_icon(wawa_code)
 
         return {
-            "FMI.outdoor_temperature": temp,
-            "FMI.outdoor_humidity": self.fmi_data.get("humidity"),
-            "FMI.wind_speed": self.fmi_data.get("wind_speed"),
-            "FMI.wind_dir": self.fmi_data.get("wind_dir"),
-            "FMI.rain_amount": precip_val,
-            "unit.FMI.rain_amount": precip_unit,
-            "image.precip_icon": precip_icon,   # New: Drop or Snowflake icon based on precipitation type
-            "image.weather_icon": main_icon_path # Updated: Main weather icon based on FMI weather code
+            "FMI.temp": round(temp, 1),
+            "FMI.rh": round(self.fmi_data.get("FMI.rh", 0.0), 1),
+            "FMI.wind_speed": round(self.fmi_data.get("FMI.wind_speed", 0.0), 1),
+            "FMI.wind_dir": self.fmi_data.get("FMI.wind_dir", 0.0),
+            "FMI.rain_amount": round(precip_val, 1),
+            "FMI.weather_code": wawa_code,
         }
     
     

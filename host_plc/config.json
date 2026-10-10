@@ -1,7 +1,7 @@
 {
     "SystemSettings":{
 
-        "SerialPort": "COM5",
+        "SerialPort": "/dev/ttyACM0",
         "Resolution": {
             "Width": 800,
             "Height": 480
@@ -71,7 +71,7 @@
             "font": "value",
             "x": 380,
             "y": 70,
-            "limits":{"LL": 0, "HH": 80 }
+            "limits":{"LL": 30, "HH": 45 }
         },
         {
             "id": "sensor.bme688_co2",
@@ -80,7 +80,7 @@
             "font": "value",
             "x": 180,
             "y": 140,
-            "limits":{"LL": 0, "HH": 1200 }
+            "limits":{"LL": 400, "HH": 1000 }
         },
         {
             "id": "sensor.bme688_pressure",
@@ -89,7 +89,7 @@
             "font": "value",
             "x": 380,  
             "y": 140,
-            "limits":{"LL": 100, "HH": 110 }
+            "limits":{"LL": 950, "HH": 1050 }
         },
         {
             "id": "sensor.bme688_voc",
@@ -107,20 +107,20 @@
             "font": "value",
             "x": 380,
             "y": 210,
-            "limits":{"LL": 0, "HH": 100 }
+            "limits":{"LL": 80, "HH": 100 }
         },
 
         {
-            "id": "FMI.outdoor_temperature",
+            "id": "FMI.temp",
             "type": "text",
             "unit": "°C",
             "font": "value",
             "x": 580,
             "y": 70,
-            "limits":{"LL": -50, "HH": 50 }
+            "limits":{"LL": -25, "HH": 20 }
         },
         {
-            "id": "FMI.outdoor_humidity",
+            "id": "FMI.rh",
             "type": "text",
             "unit": "RH%",
             "font": "value",
@@ -134,8 +134,8 @@
             "unit": "m/s",
             "font": "value",
             "x": 580,
-            "y": 140,
-            "limits":{"LL": 0, "HH": 50 }
+            "y": 140,   
+            "limits":{"LL": 0, "HH": 10 }
         },
         {
             "id": "FMI.rain_amount",
@@ -172,6 +172,24 @@
             "y": 160,
             "width": 40,
             "height": 40
+        },
+        {
+            "id": "graph1",
+            "type": "graph",
+            "x": 0,
+            "y": 240,
+            "width": 400,
+            "height": 120,
+            "draw_id": "sensor.bme688_temp"
+        },
+        {
+            "id": "graph2",
+            "type": "graph",
+            "x": 0,
+            "y": 360,
+            "width": 400,
+            "height": 120,
+            "draw_id": "sensor.bme688_co2"
         }
 
 

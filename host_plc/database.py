@@ -20,7 +20,7 @@ class DatabaseManager:
                     timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
                     indoor_temp REAL,
                     indoor_hum REAL,
-                    indoor_pressure REAL,
+                    indoor_pressure INTEGER,
                     indoor_voc INTEGER,
                     indoor_co2 REAL,
                     indoor_aq REAL,
@@ -28,7 +28,8 @@ class DatabaseManager:
                     outdoor_hum REAL,
                     outdoor_wind_speed REAL,
                     outdoor_wind_dir REAL,
-                    outdoor_rain REAL
+                    outdoor_rain REAL,
+                    outdoor_weather_code INTEGER
                 )
             ''')
             
@@ -57,19 +58,20 @@ class DatabaseManager:
             
             # Extract variables from the payload dictionaries
             # Using .get() allows us to safely insert None (NULL in SQLite) if a reading is missing
-            in_temp = bme_data.get("temperature")
-            in_hum = bme_data.get("humidity")
-            in_press = bme_data.get("pressure")
-            in_voc = bme_data.get("voc")
-            in_co2 = bme_data.get("co2")
-            in_aq = bme_data.get("aq")
+            in_temp = bme_data.get("sensor.bme688_temp")
+            in_hum = bme_data.get("sensor.bme688_rh")
+            in_press = bme_data.get("sensor.bme688_pressure")
+            in_voc = bme_data.get("sensor.bme688_voc")
+            in_co2 = bme_data.get("sensor.bme688_co2")
+            in_aq = bme_data.get("sensor.bme688_aq")
             
             # Keys match the FMI payload structure from your logs
-            out_temp = fmi_data.get("temperature")
-            out_hum = fmi_data.get("humidity")
-            out_wind_speed = fmi_data.get("wind_speed")
-            out_wind_dir = fmi_data.get("wind_dir")
-            out_rain = fmi_data.get("rain_amount")
+            out_temp = fmi_data.get("FMI.temp")
+            out_hum = fmi_data.get("FMI.rh")
+            out_wind_speed = fmi_data.get("FMI.wind_speed")
+            out_wind_dir = fmi_data.get("FMI.wind_dir")
+            out_rain = fmi_data.get("FMI.rain_amount")
+            out_weather_code = fmi_data.get("FMI.weather_code")
             
             # Get current local time as string
             from datetime import datetime
@@ -82,14 +84,16 @@ class DatabaseManager:
                     indoor_temp, indoor_hum, indoor_pressure, 
                     indoor_voc, indoor_co2, indoor_aq,
                     outdoor_temp, outdoor_hum, 
-                    outdoor_wind_speed, outdoor_wind_dir, outdoor_rain
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    outdoor_wind_speed, outdoor_wind_dir, outdoor_rain,
+                    outdoor_weather_code
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 current_time,
                 in_temp, in_hum, in_press, 
                 in_voc, in_co2, in_aq,
                 out_temp, out_hum, 
-                out_wind_speed, out_wind_dir, out_rain
+                out_wind_speed, out_wind_dir, out_rain,
+                out_weather_code
             ))
             
             # Commit changes and close connection safely
@@ -162,13 +166,29 @@ class DatabaseManager:
         
         # If a reading exists, map it to the requested key structure
         if row:
+            r = dict(row)  # Convert sqlite3.Row to a standard dictionary
+            
+            # Helper function to safely get values from the row, defaulting to None if missing
+            def safe_get(key, default):
+                val = r.get(key)
+                return val if val is not None else default
+            
             return {
-                "sensor.bme688_temp": row["indoor_temp"],
-                "sensor.bme688_rh": row["indoor_hum"],
-                "sensor.bme688_co2": row["indoor_co2"],
-                "sensor.bme688_pressure": row["indoor_pressure"],
-                "sensor.bme688_voc": row["indoor_voc"],
-                "sensor.bme688_aq": row["indoor_aq"]
+                "sensor.bme688_temp": safe_get("indoor_temp", -1.0),
+                "sensor.bme688_rh": safe_get("indoor_hum", -1.0),
+                "sensor.bme688_co2": round(safe_get("indoor_co2", -1)),
+                "sensor.bme688_pressure": safe_get("indoor_pressure", -1),
+                "sensor.bme688_voc": safe_get("indoor_voc", -1),
+                "sensor.bme688_aq": safe_get("indoor_aq", -1.0),
+                
+                "FMI.temp": safe_get("outdoor_temp", -1.0),
+                "FMI.rh": safe_get("outdoor_hum", -1.0),
+                "FMI.wind_speed": safe_get("outdoor_wind_speed", -1.0),
+                "FMI.wind_dir": safe_get("outdoor_wind_dir", 0.0),
+                "FMI.rain_amount": safe_get("outdoor_rain", -1.0),
+                "unit.FMI.rain_amount": safe_get("outdoor_rain_unit", "mm"),
+                "FMI.weather_code": safe_get("outdoor_weather_code", 0)
+                
             }
         else:
             # Fallback for the very first run before any data is logged
@@ -176,7 +196,14 @@ class DatabaseManager:
                 "sensor.bme688_temp": -1.0,
                 "sensor.bme688_rh": -1.0,
                 "sensor.bme688_co2": -1.0,
-                "sensor.bme688_pressure": -1.0,
+                "sensor.bme688_pressure": -1,
                 "sensor.bme688_voc": -1,
-                "sensor.bme688_aq": -1.0
+                "sensor.bme688_aq": -1.0,
+                "FMI.temp": -1.0,
+                "FMI.rh": -1.0,
+                "FMI.wind_speed": -1.0,
+                "FMI.wind_dir": 0.0,
+                "FMI.rain_amount": -1.0,
+                "unit.FMI.rain_amount": "mm",
+                "FMI.weather_code": 0
             }

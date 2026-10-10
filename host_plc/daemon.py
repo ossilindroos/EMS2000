@@ -5,6 +5,7 @@ from typing import Dict, List, Any
 
 from db_renderer import DashboardRenderer
 from fmi_client import FMIClient
+from graph_maker import GraphMaker
 from serial_host import SerialHost
 from iaq_calculator import IAQCalculator
 from database import DatabaseManager
@@ -51,6 +52,9 @@ class HostController:
         # Initialize the database manager
         self._db_manager = DatabaseManager(db_path="sensor_history.db")
         
+        # Initialize the GraphMaker for rendering historical data graphs
+        self._graph_maker = GraphMaker()
+        
 
     def start(self) -> None:
         """
@@ -71,25 +75,48 @@ class HostController:
         """
         logger.info("Triggering screen refresh...")
         
-        # 1. Fetch live FMI data
-        try:
-            self._fmi_client.fetch_raw_data()
-            fmi_payload = self._fmi_client.get_dashboard_payload()
-            logger.info(f"FMI payload retrieved successfully: {list(fmi_payload.keys())}")
-        except Exception as e:
-            logger.error(f"Failed to fetch FMI data: {e}")
-            fmi_payload = {}
+        # 1. Fetch the latest data from the database
+        live_data = self._db_manager.get_latest_data()
+        if not live_data:
+            logger.warning("No live data available for rendering. Aborting screen refresh.")
+            return
+        
+        # 1a. Calculate precipitation and determine the correct icon based on temperature and weather code
+        temp = live_data.get("FMI.temp", 0.0)
+        raw_rain = live_data.get("FMI.rain_amount", 0.0)
+        wawa_code = live_data.get("FMI.weather_code", 0)
+        
+        # Run the precipitation calculation and icon mapping based on the current temperature and weather code.
+        precip_val, precip_unit, precip_icon = self._fmi_client._calculate_precipitation(temp, raw_rain, wawa_code)
+        main_icon_path = self._fmi_client._map_weather_icon(wawa_code)
 
-       # 2. Combine all flat sensor values into one dictionary
-        live_data = {**self._latest_data, **fmi_payload}
+        # Update the live_data dictionary with the calculated precipitation values and icons
+        live_data["FMI.rain_amount"] = round(precip_val, 1)
+        live_data["FMI.rain_amount_unit"] = precip_unit
+        live_data["image.precip_icon"] = precip_icon
+        live_data["image.weather_icon"] = main_icon_path
 
-        # 3. Create a deep copy of the static config to serve as the final payload
+        # 2. Create a deep copy of the static config to serve as the final payload
         import copy
         render_payload = copy.deepcopy(self._config)
+        history_data = self._db_manager.get_history_for_graphs(hours=24)  # Fetch last 24 hours of data for graph rendering
 
-        # 4. Inject live data into the copied entities
+        # 3. Inject live data into the copied entities
         for entity in render_payload.get("Entities", []):
             ent_id = entity.get("id")
+            e_type = entity.get("type")
+            
+            # Special handling for graph entities
+            if e_type == "graph":
+                draw_id = entity.get("draw_id")
+                w, h = entity.get("width", 400), entity.get("height", 120)
+                
+                # GraphMaker returns a PIL Image object based on the history data and draw_id
+                graph_image = self._graph_maker.generate_graph(history_data, draw_id, w, h)
+                
+                # Inject the generated graph image into the entity for rendering
+                entity["image_obj"] = graph_image
+                continue
             
             # Special: Wind Direction
             # Image rotation for wind direction is handled separately to ensure the arrow points correctly.
@@ -102,7 +129,7 @@ class HostController:
                 continue  # Skip the rest of the loop for wind direction since it's handled
 
             
-            if ent_id in live_data:
+            if ent_id in live_data and live_data[ent_id] is not None:
                 # Handle image updates (file path or rotation)
                 if entity.get("type") == "image":
                     if "wind_dir" in ent_id:
@@ -119,7 +146,7 @@ class HostController:
                 if unit_key in live_data:
                     entity["unit"] = live_data[unit_key]
 
-        # 5. Pass the SINGLE combined dictionary to the renderer
+        # 4. Pass the SINGLE combined dictionary to the renderer
         try:
             img = self._renderer.generate_image(render_payload)
             # Digital Twin for the HomeAssistant
@@ -160,10 +187,10 @@ class HostController:
         logger.info("Handling incoming sensor data...")
         
         # 1. Extract raw values from the Pico payload
-        raw_temp = data.get("temperature", 0.0)
-        raw_hum = data.get("humidity", 0.0)
-        raw_press = data.get("pressure", 0.0)
-        raw_gas = data.get("gas_resistance", 0.0)
+        raw_temp = data.get("sensor.bme688_temp", 0.0)
+        raw_hum = data.get("sensor.bme688_rh", 0.0)
+        raw_press = data.get("sensor.bme688_pressure", 0.0)
+        raw_gas = data.get("sensor.bme688_gas_resistance", 0.0)
         
         # 2. Process IAQ metrics if gas resistance is valid
         # The BME688 might return 0.0 during the first few seconds of heating up
@@ -172,27 +199,28 @@ class HostController:
         else:
             logger.warning("Gas resistance is 0. IAQ metrics will be skipped for this reading.")
             processed_data = {
-                "temperature": raw_temp,
-                "humidity": raw_hum,
-                "aq": None,
-                "eco2": None,
-                "voc": None
+                "sensor.bme688_temp": round(raw_temp, 1),
+                "sensor.bme688_rh": round(raw_hum, 1),
+                "sensor.bme688_aq": None,
+                "sensor.bme688_co2": None,
+                "sensor.bme688_voc": None
             }
             
         # 3. Rebuild the BME payload for the database to match insert_reading keys
         final_bme_payload = {
-            "temperature": processed_data.get("temperature"),
-            "humidity": processed_data.get("humidity"),
-            "pressure": raw_press,
-            "voc": processed_data.get("voc"),
-            "co2": processed_data.get("eco2"),
-            "aq": processed_data.get("aq")
+            "sensor.bme688_temp": processed_data.get("sensor.bme688_temp"),
+            "sensor.bme688_rh": processed_data.get("sensor.bme688_rh"),
+            "sensor.bme688_pressure": int(round(raw_press)),
+            "sensor.bme688_voc": processed_data.get("sensor.bme688_voc"),
+            "sensor.bme688_co2": processed_data.get("sensor.bme688_co2"),
+            "sensor.bme688_aq": processed_data.get("sensor.bme688_aq")
         }
         
         # 4. Fetch the latest FMI outdoor data
         # Ensure your FMI client has a method to get the current payload
         try:
-            fmi_data = self._fmi_client.fetch_raw_data() or {}
+            self._fmi_client.fetch_raw_data()
+            fmi_data = self._fmi_client.get_dashboard_payload()
         except Exception as e:
             logger.error(f"Failed to fetch FMI data: {e}")
             fmi_data = {}
@@ -206,10 +234,6 @@ class HostController:
             logger.error("Failed to insert data into database. Check previous errors.")
         
         
-        
-
-    
-    
 def main():
         # Test the screen refresh logic using the real config.json
             try:

@@ -18,7 +18,7 @@ class SerialHost:
         # Flag to indicate if an error was received from the Pico
         self.error_received = False
 
-    def load_system_config(filepath: str = "config.json") -> dict:
+    def load_system_config(self, filepath: str = "config.json") -> dict:
         try:
             with open(filepath, 'r', encoding='utf-8') as f:
                 config = json.load(f)
@@ -117,11 +117,11 @@ class SerialHost:
                         self.ack_received.set()  # Unblock any waiting senders even on error
                         
                     # 3. Sensor Data: Check if payload contains BME688 readings
-                    elif "temperature" in payload:
-                        t = payload.get("temperature", 0.0)
-                        h = payload.get("humidity", 0.0)
-                        p = payload.get("pressure", 0.0)
-                        gas = payload.get("gas_resistance", None)
+                    elif "sensor.bme688_temp" in payload:
+                        t = payload.get("sensor.bme688_temp", 0.0)
+                        h = payload.get("sensor.bme688_rh", 0.0)
+                        p = payload.get("sensor.bme688_pressure", 0.0)
+                        gas = payload.get("sensor.bme688_gas_resistance", None)
                         
                         gas_str = f" | Gas: {gas:.0f} ohm" if gas else ""
                         print(f"[BME688] T: {t:.2f} °C | H: {h:.2f} % | P: {p:.2f} hPa{gas_str}")
