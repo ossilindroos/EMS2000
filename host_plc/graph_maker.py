@@ -1,9 +1,10 @@
 from PIL import Image
 import logging
 import matplotlib.pyplot as plt
-from datetime import datetime
+from datetime import datetime, timezone
 from matplotlib import dates as mdates
 import io
+from zoneinfo import ZoneInfo
 
 from matplotlib.ticker import FuncFormatter
 
@@ -108,13 +109,20 @@ class GraphMaker:
         timestamps = []
         values = []
         
+        # Define Finnish timezone for proper timestamp handling
+        helsinki_tz = ZoneInfo("Europe/Helsinki")
+        
+        
         for entry in data:
             ts_str = entry.get("timestamp")
             val = entry.get(value_key)
             
             if ts_str and val is not None:
-                dt = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
-                timestamps.append(dt)
+                # Convert timestamp string to datetime object in Helsinki timezone
+                dt_naive = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
+                dt_utc = dt_naive.replace(tzinfo=timezone.utc)
+                dt_local = dt_utc.astimezone(helsinki_tz)
+                timestamps.append(dt_local)
                 values.append(val)
                 
         return timestamps, values
