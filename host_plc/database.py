@@ -73,9 +73,9 @@ class DatabaseManager:
             out_rain = fmi_data.get("FMI.rain_amount")
             out_weather_code = fmi_data.get("FMI.weather_code")
             
-            # Get current local time as string
-            from datetime import datetime
-            current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            # Get current UTC time as string
+            from datetime import datetime, timezone
+            current_time = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
             
             # Execute INSERT INTO statement
             cursor.execute('''

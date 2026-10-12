@@ -1,3 +1,5 @@
+import __main__
+
 from PIL import Image
 import logging
 import matplotlib.pyplot as plt
@@ -91,7 +93,7 @@ class GraphMaker:
 
         # 5. Format X-axis and apply layout
         ax.xaxis.set_major_locator(mdates.HourLocator(interval=2))
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H'))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%H', tz=ZoneInfo("Europe/Helsinki")))
         ax.grid(True)
         plt.tight_layout(pad=0.5)
 
@@ -112,7 +114,6 @@ class GraphMaker:
         # Define Finnish timezone for proper timestamp handling
         helsinki_tz = ZoneInfo("Europe/Helsinki")
         
-        
         for entry in data:
             ts_str = entry.get("timestamp")
             val = entry.get(value_key)
@@ -120,9 +121,35 @@ class GraphMaker:
             if ts_str and val is not None:
                 # Convert timestamp string to datetime object in Helsinki timezone
                 dt_naive = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
+                # Label as UTC
                 dt_utc = dt_naive.replace(tzinfo=timezone.utc)
-                dt_local = dt_utc.astimezone(helsinki_tz)
-                timestamps.append(dt_local)
+                timestamps.append(dt_utc)
                 values.append(val)
                 
         return timestamps, values
+    
+    
+    
+if __name__ == "__main__":
+    # Example usage for testing
+    gm = GraphMaker()
+    # Simulated historical data for testing
+    testDB = [
+        {"timestamp": "2024-06-01 00:00:00", "indoor_temp": 22.5, "indoor_rh": 45.0, "indoor_co2": 400},
+        {"timestamp": "2024-06-01 01:00:00", "indoor_temp": 22.0, "indoor_rh": 46.0, "indoor_co2": 420},
+        {"timestamp": "2024-06-01 02:00:00", "indoor_temp": 21.5, "indoor_rh": 47.0, "indoor_co2": 430},
+        {"timestamp": "2024-06-01 03:00:00", "indoor_temp": 21.0, "indoor_rh": 48.0, "indoor_co2": 450},
+        {"timestamp": "2024-06-01 04:00:00", "indoor_temp": 20.5, "indoor_rh": 49.0, "indoor_co2": 470},
+        {"timestamp": "2024-06-01 05:00:00", "indoor_temp": 20.0, "indoor_rh": 50.0, "indoor_co2": 500},]
+    
+    # Test to see if the timezone conversion works
+    for entry in testDB:
+        ts_str = entry.get("timestamp")
+        dt_naive = datetime.strptime(ts_str, "%Y-%m-%d %H:%M:%S")
+        dt_utc = dt_naive.replace(tzinfo=timezone.utc)
+        dt_local = dt_utc.astimezone(ZoneInfo("Europe/Helsinki"))
+        print(f"Original: {ts_str} | UTC: {dt_utc} | Local (Helsinki): {dt_local}")
+    
+    img = gm.generate_graph(testDB, draw_id="sensor.bme688_temp", width=400, height=120)
+    if img:
+        img.show()  # Display the generated graph for visual inspection
